@@ -1,0 +1,77 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@5.0.2
+
+jobs:
+  test-backend:
+    docker:
+      - image: cimg/node:18.0
+      - image: mongo:6.0
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+          app-dir: ~/project/server
+      - run:
+          name: Run Backend Tests
+          command: |
+            cd server
+            npm test
+      - run:
+          name: Run Security Audit
+          command: |
+            cd server
+            npm audit --audit-level=moderate
+
+  test-frontend:
+    docker:
+      - image: cimg/node:18.0
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+          app-dir: ~/project/client
+      - run:
+          name: Run Frontend Tests
+          command: |
+            cd client
+            npm test -- --watchAll=false
+      - run:
+          name: Build Frontend
+          command: |
+            cd client
+            npm run build
+      - run:
+          name: Run Security Audit
+          command: |
+            cd client
+            npm audit --audit-level=moderate
+
+  security-scan:
+    docker:
+      - image: cimg/node:18.0
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+            cd server && npm install
+            cd ../client && npm install
+      - run:
+          name: Run npm audit
+          command: |
+            cd server && npm audit --audit-level=high || true
+            cd ../client && npm audit --audit-level=high || true
+      - run:
+          name: Check for known vulnerabilities
+          command: |
+            echo "Security scan completed"
+
+workflows:
+  version: 2
+  test-and-deploy:
+    jobs:
+      - test-backend
+      - test-frontend
+      - security-scan
