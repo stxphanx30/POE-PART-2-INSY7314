@@ -2,7 +2,7 @@
 
 A secure, full-stack web application for processing international payments through SWIFT. Built with React, Node.js, Express, and MongoDB.
 
-## 🔒 Security Features
+##  Security Features
 
 This application implements comprehensive security measures as required:
 
@@ -32,7 +32,7 @@ This application implements comprehensive security measures as required:
 - ✅ **Helmet.js**: Security headers (HSTS, CSP, etc.)
 - ✅ **CORS**: Configured for specific origins only
 
-## 🏗️ Architecture
+##  Architecture
 
 ### Backend (Node.js/Express)
 ```
@@ -58,7 +58,7 @@ client/
 │   └── index.js     # Entry point
 ```
 
-## 🚀 Installation & Setup
+##  Installation & Setup
 
 ### Prerequisites
 - Node.js (v14 or higher)
@@ -67,7 +67,7 @@ client/
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone (https://github.com/Notz05/customer-payments-portal.git)
 cd customer-payments-portal
 ```
 
@@ -138,7 +138,7 @@ npm start
 
 The application will open at `http://localhost:3000`
 
-## 👥 User Roles
+##  User Roles
 
 ### Customer
 - Register and login
@@ -152,7 +152,7 @@ The application will open at `http://localhost:3000`
 - Verify payment details and SWIFT codes
 - Submit verified payments to SWIFT
 
-## 🔑 Creating Employee Accounts
+##  Creating Employee Accounts
 
 Employees must be created directly in the database. Use MongoDB shell or Compass:
 
@@ -174,7 +174,7 @@ db.users.insertOne({
 
 Or use the registration endpoint with a modified controller for initial setup.
 
-## 📡 API Endpoints
+##  API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - Register new customer
@@ -190,7 +190,7 @@ Or use the registration endpoint with a modified controller for initial setup.
 - `PUT /api/payments/:id/verify` - Verify payment (employee)
 - `POST /api/payments/submit-to-swift` - Submit to SWIFT (employee)
 
-## 🧪 Testing
+##  Testing
 
 ### Manual Testing
 1. Register a customer account
@@ -223,7 +223,7 @@ curl -k -X POST https://localhost:5000/api/auth/login \
   }'
 ```
 
-## 🛡️ Security Best Practices Implemented
+##  Security Best Practices Implemented
 
 1. **Environment Variables**: Sensitive data stored in .env files
 2. **JWT Authentication**: Secure token-based authentication
@@ -236,7 +236,7 @@ curl -k -X POST https://localhost:5000/api/auth/login \
 9. **Error Handling**: No sensitive data in error messages
 10. **Database Security**: Mongoose with schema validation
 
-## 📋 Input Validation Patterns
+##  Input Validation Patterns
 
 | Field | Pattern | Description |
 |-------|---------|-------------|
@@ -248,7 +248,7 @@ curl -k -X POST https://localhost:5000/api/auth/login \
 | SWIFT Code | `^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$` | Valid SWIFT/BIC format |
 | IBAN | `^[A-Z0-9]{8,34}$` | 8-34 alphanumeric characters |
 
-## 🌍 Supported Currencies
+##  Supported Currencies
 
 - USD (US Dollar)
 - EUR (Euro)
@@ -259,7 +259,7 @@ curl -k -X POST https://localhost:5000/api/auth/login \
 - CAD (Canadian Dollar)
 - CHF (Swiss Franc)
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### SSL Certificate Errors
 If you see SSL warnings in the browser, this is normal for self-signed certificates in development. Click "Advanced" and "Proceed to localhost".
@@ -278,11 +278,11 @@ mongod --version
 ### Port Already in Use
 Change the PORT in `.env` file if 5000 is already in use.
 
-## 📝 License
+##  License
 
 This project is for educational purposes as part of the APDS assignment.
 
-## 👨‍💻 Development
+##  Development
 
 Built with:
 - **Frontend**: React 18, React Router, Axios, Lucide Icons
@@ -290,7 +290,7 @@ Built with:
 - **Security**: Bcrypt, JWT, Helmet, Express Rate Limit
 - **Validation**: Express Validator, RegEx patterns
 
-## 🚀 Production Deployment
+##  Production Deployment
 
 For production deployment:
 1. Use proper SSL certificates from a CA (Let's Encrypt, etc.)
@@ -304,6 +304,3 @@ For production deployment:
 9. Set up CI/CD pipeline
 10. Implement backup strategies
 
-## 📞 Support
-
-For issues or questions, please contact the development team.
