@@ -89,33 +89,21 @@ const PORT = process.env.PORT || 5000;
 // Server Configuration
 const startServer = () => {
   const PORT = process.env.PORT || 5000;
-  
-  if (process.env.NODE_ENV === 'production') {
-    // Use HTTPS in production
-    const sslOptions = {
-      key: fs.readFileSync(path.join(__dirname, 'config/ssl/server.key')),
-      cert: fs.readFileSync(path.join(__dirname, 'config/ssl/server.cert'))
-    };
-    
-    const server = https.createServer(sslOptions, app);
-    
-    server.listen(PORT, () => {
-      console.log(`Server running in production mode with HTTPS on port ${PORT}`);
-      console.log(`API available at: https://localhost:${PORT}/api`);
-    });
-    
-    return server;
-  } else {
-    // Use HTTP in development
-    const server = http.createServer(app);
-    
-    server.listen(PORT, () => {
-      console.log(`Server running in development mode with HTTP on port ${PORT}`);
-      console.log(`API available at: http://localhost:${PORT}/api`);
-    });
-    
-    return server;
-  }
+
+ // Use HTTPS for dev or prod
+const sslOptions = {
+  key: fs.readFileSync(path.join(__dirname, 'config/ssl/localhost-key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, 'config/ssl/localhost.pem'))
+};
+
+const server = https.createServer(sslOptions, app);
+
+server.listen(PORT, () => {
+  console.log(`Server running in ${process.env.NODE_ENV} mode with HTTPS on port ${PORT}`);
+  console.log(`API available at: https://localhost:${PORT}/api`);
+});
+
+return server;
 };
 
 startServer();

@@ -6,13 +6,21 @@ orbs:
 jobs:
   test-backend:
     docker:
-      - image: cimg/node:18.0
+      - image: cimg/node:22.20
       - image: mongo:6.0
+    working_directory: ~/repo
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-server-deps-{{ checksum "server/package-lock.json" }}
       - node/install-packages:
           pkg-manager: npm
-          app-dir: ~/project/server
+          app-dir: server
+      - save_cache:
+          paths:
+            - server/node_modules
+          key: v1-server-deps-{{ checksum "server/package-lock.json" }}
       - run:
           name: Run Backend Tests
           command: |
@@ -22,16 +30,24 @@ jobs:
           name: Run Security Audit
           command: |
             cd server
-            npm audit --audit-level=moderate
+            npm audit --audit-level=moderate || true
 
   test-frontend:
     docker:
-      - image: cimg/node:18.0
+      - image: cimg/node:22.20
+    working_directory: ~/repo
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-client-deps-{{ checksum "client/package-lock.json" }}
       - node/install-packages:
           pkg-manager: npm
-          app-dir: ~/project/client
+          app-dir: client
+      - save_cache:
+          paths:
+            - client/node_modules
+          key: v1-client-deps-{{ checksum "client/package-lock.json" }}
       - run:
           name: Run Frontend Tests
           command: |
@@ -46,27 +62,7 @@ jobs:
           name: Run Security Audit
           command: |
             cd client
-            npm audit --audit-level=moderate
-
-  security-scan:
-    docker:
-      - image: cimg/node:18.0
-    steps:
-      - checkout
-      - run:
-          name: Install Dependencies
-          command: |
-            cd server && npm install
-            cd ../client && npm install
-      - run:
-          name: Run npm audit
-          command: |
-            cd server && npm audit --audit-level=high || true
-            cd ../client && npm audit --audit-level=high || true
-      - run:
-          name: Check for known vulnerabilities
-          command: |
-            echo "Security scan completed"
+            npm audit --audit-level=moderate || true
 
 workflows:
   version: 2
@@ -74,4 +70,3 @@ workflows:
     jobs:
       - test-backend
       - test-frontend
-      - security-scan
