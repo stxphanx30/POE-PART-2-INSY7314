@@ -87,9 +87,26 @@ Edit `.env` with your configuration:
 ```env
 PORT=5000
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/payments-portal
+MONGO_URI=mongodb+srv://st10158190_db_user:zmGlRtcg5iNkFsyC@payments-portal.yrddn5i.mongodb.net/
+
+# JWT
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 JWT_EXPIRE=24h
+
+# SSL paths (relatifs au dossier server/)
+SSL_KEY_PATH=./config/ssl/localhost-key.pem
+SSL_CERT_PATH=./config/ssl/localhost.pem
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Session management
+SESSION_SECRET=your-super-strong-secret-key
+SESSION_NAME=sessionId
+SESSION_MAX_AGE_MS=1800000
+SESSION_SAMESITE=lax
+SESSION_COLLECTION=sessions
 ```
 
 ### 3. Generate SSL Certificates (Development)
@@ -110,6 +127,7 @@ npm install
 Create `.env` file in client directory:
 ```env
 REACT_APP_API_URL=https://localhost:5000/api
+
 ```
 
 ### 5. Start MongoDB
@@ -290,17 +308,5 @@ Built with:
 - **Security**: Bcrypt, JWT, Helmet, Express Rate Limit
 - **Validation**: Express Validator, RegEx patterns
 
-##  Production Deployment
 
-For production deployment:
-1. Use proper SSL certificates from a CA (Let's Encrypt, etc.)
-2. Set `NODE_ENV=production`
-3. Use strong JWT secrets
-4. Configure MongoDB with authentication
-5. Set up proper CORS origins
-6. Enable MongoDB replica sets for transactions
-7. Implement proper logging and monitoring
-8. Use environment-specific configurations
-9. Set up CI/CD pipeline
-10. Implement backup strategies
 
