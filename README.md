@@ -67,7 +67,7 @@ client/
 
 ### 1. Clone the Repository
 ```bash
-git clone (https://github.com/Notz05/customer-payments-portal.git)
+git clone https://github.com/stxphanx30/POE-PART-2-INSY7314.git 
 cd customer-payments-portal
 ```
 
