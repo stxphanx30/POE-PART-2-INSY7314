@@ -2,7 +2,7 @@
 
 This document outlines the security measures implemented in the International Payments Portal.
 
-## 🔐 Security Requirements Compliance
+##  Security Requirements Compliance
 
 ### 1. Password Security with Hashing and Salting ✅
 
@@ -303,9 +303,6 @@ In case of security incident:
 5. Notify affected users
 6. Document incident
 
-## 📞 Security Contact
-
-For security concerns, contact: security@yourbank.com
 
 ## 🔄 Regular Security Tasks
 

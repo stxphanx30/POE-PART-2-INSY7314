@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, LogOut, User, CheckCircle, Send, List } from 'lucide-react';
 import authService from '../services/authService';
@@ -15,21 +15,12 @@ const EmployeeDashboard = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-    if (!currentUser || currentUser.role !== 'employee') {
-      navigate('/login');
-      return;
-    }
-    setUser(currentUser);
-    loadPayments();
-  }, [navigate, filter]);
-
-  const loadPayments = async () => {
+  // Wrap loadPayments in useCallback
+  const loadPayments = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const response = filter === 'pending' 
+      const response = filter === 'pending'
         ? await paymentService.getPendingPayments()
         : await paymentService.getAllPayments();
       setPayments(response.payments);
@@ -39,7 +30,18 @@ const EmployeeDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  // useEffect depends on loadPayments and navigate
+  useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'employee') {
+      navigate('/login');
+      return;
+    }
+    setUser(currentUser);
+    loadPayments();
+  }, [navigate, loadPayments]);
 
   const handleVerify = async (paymentId) => {
     setError('');
@@ -55,13 +57,9 @@ const EmployeeDashboard = () => {
   };
 
   const handleSelectPayment = (paymentId) => {
-    setSelectedPayments(prev => {
-      if (prev.includes(paymentId)) {
-        return prev.filter(id => id !== paymentId);
-      } else {
-        return [...prev, paymentId];
-      }
-    });
+    setSelectedPayments(prev =>
+      prev.includes(paymentId) ? prev.filter(id => id !== paymentId) : [...prev, paymentId]
+    );
   };
 
   const handleSubmitToSwift = async () => {
@@ -69,11 +67,9 @@ const EmployeeDashboard = () => {
       setError('Please select at least one verified payment to submit');
       return;
     }
-
     setError('');
     setSuccess('');
     setLoading(true);
-
     try {
       const response = await paymentService.submitToSwift(selectedPayments);
       setSuccess(response.message);
@@ -291,5 +287,6 @@ const EmployeeDashboard = () => {
     </div>
   );
 };
+
 
 export default EmployeeDashboard;

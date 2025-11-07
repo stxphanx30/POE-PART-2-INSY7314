@@ -2,7 +2,7 @@
 
 A secure, full-stack web application for processing international payments through SWIFT. Built with React, Node.js, Express, and MongoDB.
 
-## 🔒 Security Features
+##  Security Features
 
 This application implements comprehensive security measures as required:
 
@@ -32,7 +32,7 @@ This application implements comprehensive security measures as required:
 - ✅ **Helmet.js**: Security headers (HSTS, CSP, etc.)
 - ✅ **CORS**: Configured for specific origins only
 
-## 🏗️ Architecture
+##  Architecture
 
 ### Backend (Node.js/Express)
 ```
@@ -58,7 +58,7 @@ client/
 │   └── index.js     # Entry point
 ```
 
-## 🚀 Installation & Setup
+##  Installation & Setup
 
 ### Prerequisites
 - Node.js (v14 or higher)
@@ -67,7 +67,7 @@ client/
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/stxphanx30/POE-PART-2-INSY7314.git 
 cd customer-payments-portal
 ```
 
@@ -87,9 +87,26 @@ Edit `.env` with your configuration:
 ```env
 PORT=5000
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/payments-portal
+MONGO_URI=mongodb+srv://st10158190_db_user:zmGlRtcg5iNkFsyC@payments-portal.yrddn5i.mongodb.net/
+
+# JWT
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 JWT_EXPIRE=24h
+
+# SSL paths (relatifs au dossier server/)
+SSL_KEY_PATH=./config/ssl/localhost-key.pem
+SSL_CERT_PATH=./config/ssl/localhost.pem
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Session management
+SESSION_SECRET=your-super-strong-secret-key
+SESSION_NAME=sessionId
+SESSION_MAX_AGE_MS=1800000
+SESSION_SAMESITE=lax
+SESSION_COLLECTION=sessions
 ```
 
 ### 3. Generate SSL Certificates (Development)
@@ -110,6 +127,7 @@ npm install
 Create `.env` file in client directory:
 ```env
 REACT_APP_API_URL=https://localhost:5000/api
+
 ```
 
 ### 5. Start MongoDB
@@ -138,7 +156,7 @@ npm start
 
 The application will open at `http://localhost:3000`
 
-## 👥 User Roles
+##  User Roles
 
 ### Customer
 - Register and login
@@ -152,7 +170,7 @@ The application will open at `http://localhost:3000`
 - Verify payment details and SWIFT codes
 - Submit verified payments to SWIFT
 
-## 🔑 Creating Employee Accounts
+##  Creating Employee Accounts
 
 Employees must be created directly in the database. Use MongoDB shell or Compass:
 
@@ -174,7 +192,7 @@ db.users.insertOne({
 
 Or use the registration endpoint with a modified controller for initial setup.
 
-## 📡 API Endpoints
+##  API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - Register new customer
@@ -190,7 +208,7 @@ Or use the registration endpoint with a modified controller for initial setup.
 - `PUT /api/payments/:id/verify` - Verify payment (employee)
 - `POST /api/payments/submit-to-swift` - Submit to SWIFT (employee)
 
-## 🧪 Testing
+##  Testing
 
 ### Manual Testing
 1. Register a customer account
@@ -223,7 +241,7 @@ curl -k -X POST https://localhost:5000/api/auth/login \
   }'
 ```
 
-## 🛡️ Security Best Practices Implemented
+##  Security Best Practices Implemented
 
 1. **Environment Variables**: Sensitive data stored in .env files
 2. **JWT Authentication**: Secure token-based authentication
@@ -236,7 +254,7 @@ curl -k -X POST https://localhost:5000/api/auth/login \
 9. **Error Handling**: No sensitive data in error messages
 10. **Database Security**: Mongoose with schema validation
 
-## 📋 Input Validation Patterns
+##  Input Validation Patterns
 
 | Field | Pattern | Description |
 |-------|---------|-------------|
@@ -248,7 +266,7 @@ curl -k -X POST https://localhost:5000/api/auth/login \
 | SWIFT Code | `^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$` | Valid SWIFT/BIC format |
 | IBAN | `^[A-Z0-9]{8,34}$` | 8-34 alphanumeric characters |
 
-## 🌍 Supported Currencies
+##  Supported Currencies
 
 - USD (US Dollar)
 - EUR (Euro)
@@ -259,7 +277,7 @@ curl -k -X POST https://localhost:5000/api/auth/login \
 - CAD (Canadian Dollar)
 - CHF (Swiss Franc)
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### SSL Certificate Errors
 If you see SSL warnings in the browser, this is normal for self-signed certificates in development. Click "Advanced" and "Proceed to localhost".
@@ -278,11 +296,11 @@ mongod --version
 ### Port Already in Use
 Change the PORT in `.env` file if 5000 is already in use.
 
-## 📝 License
+##  License
 
 This project is for educational purposes as part of the APDS assignment.
 
-## 👨‍💻 Development
+##  Development
 
 Built with:
 - **Frontend**: React 18, React Router, Axios, Lucide Icons
@@ -290,20 +308,5 @@ Built with:
 - **Security**: Bcrypt, JWT, Helmet, Express Rate Limit
 - **Validation**: Express Validator, RegEx patterns
 
-## 🚀 Production Deployment
 
-For production deployment:
-1. Use proper SSL certificates from a CA (Let's Encrypt, etc.)
-2. Set `NODE_ENV=production`
-3. Use strong JWT secrets
-4. Configure MongoDB with authentication
-5. Set up proper CORS origins
-6. Enable MongoDB replica sets for transactions
-7. Implement proper logging and monitoring
-8. Use environment-specific configurations
-9. Set up CI/CD pipeline
-10. Implement backup strategies
 
-## 📞 Support
-
-For issues or questions, please contact the development team.

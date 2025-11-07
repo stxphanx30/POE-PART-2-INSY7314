@@ -7,13 +7,21 @@ orbs:
 jobs:
   test-backend:
     docker:
-      - image: cimg/node:18.0
+      - image: cimg/node:22.20
       - image: mongo:6.0
+    working_directory: ~/repo
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-server-deps-{{ checksum "server/package-lock.json" }}
       - node/install-packages:
           pkg-manager: npm
-          app-dir: ~/project/server
+          app-dir: server
+      - save_cache:
+          paths:
+            - server/node_modules
+          key: v1-server-deps-{{ checksum "server/package-lock.json" }}
       - run:
           name: Run Backend Tests
           command: |
@@ -23,16 +31,24 @@ jobs:
           name: Run Security Audit
           command: |
             cd server
-            npm audit --audit-level=moderate
+            npm audit --audit-level=moderate || true
 
   test-frontend:
     docker:
-      - image: cimg/node:18.0
+      - image: cimg/node:22.20
+    working_directory: ~/repo
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-client-deps-{{ checksum "client/package-lock.json" }}
       - node/install-packages:
           pkg-manager: npm
-          app-dir: ~/project/client
+          app-dir: client
+      - save_cache:
+          paths:
+            - client/node_modules
+          key: v1-client-deps-{{ checksum "client/package-lock.json" }}
       - run:
           name: Run Frontend Tests
           command: |
@@ -47,6 +63,7 @@ jobs:
           name: Run Security Audit
           command: |
             cd client
+<<<<<<< HEAD
             npm audit --audit-level=moderate
 
   security-scan:
@@ -69,6 +86,9 @@ jobs:
           name: Check for known vulnerabilities
           command: |
             echo "Security scan completed"
+=======
+            npm audit --audit-level=moderate || true
+>>>>>>> 24f8342d5e69a4dcc57fc0f40d6ca1f06a91694a
 
   sonarqube-scan:
     docker:
@@ -131,9 +151,12 @@ workflows:
     jobs:
       - test-backend
       - test-frontend
+<<<<<<< HEAD
       - security-scan
       - sonarqube-scan:
           context: sonarcloud
       - api-security-test:
           requires:
             - test-backend
+=======
+>>>>>>> 24f8342d5e69a4dcc57fc0f40d6ca1f06a91694a

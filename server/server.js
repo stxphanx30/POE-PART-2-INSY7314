@@ -1,5 +1,5 @@
+// server.js
 const express = require('express');
-const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
@@ -7,18 +7,22 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
+const csurf = require('csurf');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const connectDB = require('./config/database');
 const { generalLimiter, sanitizeInput, errorHandler } = require('./middleware/security');
 
-// Load environment variables
 dotenv.config();
-
-// Connect to database
-connectDB();
+connectDB(); // Uses config/database.js which should read process.env.MONGO_URI
 
 const app = express();
 
-// Security middleware
+// If behind a proxy (nginx, caddy, heroku), keep this
+app.set('trust proxy', 1);
+
+// --- SECURITY HEADERS ---
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -26,7 +30,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
-    },
+    }
   },
   hsts: {
     maxAge: 31536000,
@@ -35,93 +39,122 @@ app.use(helmet({
   }
 }));
 
-// CORS configuration
+// --- CORS ---
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] 
-    : ['https://localhost:3000', 'http://localhost:3000'],
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://internationalpayment.com']
+    : ['http://localhost:3000', 'https://localhost:3000'],
   credentials: true,
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
 
-// Body parser
+// --- BODY PARSERS ---
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
-// Logging middleware
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+// --- LOGGER ---
+if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
 
-// Apply rate limiting to all routes
+// --- RATE LIMITING + SANITIZATION ---
 app.use(generalLimiter);
-
-// Input sanitization
 app.use(sanitizeInput);
 
-// Routes
+// ------------------------
+// SESSION CONFIGURATION
+// ------------------------
+const isSecure = (process.env.FORCE_SECURE === 'true') || (process.env.NODE_ENV === 'production');
+const sessionMaxAge = parseInt(process.env.SESSION_MAX_AGE_MS || `${30 * 60 * 1000}`, 10); // default 30 min
+const sessionSameSite = process.env.SESSION_SAMESITE || 'lax';
+const mongoUrl = process.env.MONGO_URI || process.env.MONGO_URL;
+
+if (!mongoUrl) {
+  console.error('FATAL: No Mongo connection string found. Set MONGO_URI or MONGO_URL in .env');
+  process.exit(1);
+}
+app.use(session({
+  name: process.env.SESSION_NAME || 'sessionId',
+  secret: process.env.SESSION_SECRET || 'change-this-secret',
+  resave: false,
+  saveUninitialized: false,
+  rolling: true, // refresh cookie expiration on each request
+  cookie: {
+    httpOnly: true,
+    secure: isSecure,     // depends on env (true in production or if FORCE_SECURE=true)
+    sameSite: sessionSameSite,
+    maxAge: sessionMaxAge
+  },
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI, 
+    collectionName: process.env.SESSION_COLLECTION || 'sessions',
+    ttl: Math.floor(sessionMaxAge / 1000)
+  })
+}));
+
+// // ------------------------
+// // CSRF PROTECTION to be reviewed
+// // ------------------------
+// // 
+// app.use(csurf({ ignoreMethods: ['GET', 'HEAD', 'OPTIONS'] }));
+
+// // Make CSRF token available to client (non HttpOnly cookie so curl / client JS can read it)
+// app.use((req, res, next) => {
+//   try {
+//     const token = req.csrfToken();
+//     res.cookie('XSRF-TOKEN', token, {
+//       httpOnly: false,      // readable by client (important for curl / frontend)
+//       secure: isSecure,
+//       sameSite: sessionSameSite,
+//       maxAge: sessionMaxAge
+//     });
+//   } catch (err) {
+//     // If token generation fails on routes that don't have a session yet, ignore silently
+//     // (e.g., some static routes). CSRF will still be enforced on state-changing routes.
+//   }
+//   next();
+// });
+
+// Attach session user if available
+app.use((req, res, next) => {
+  if (req.session && req.session.user) req.user = req.session.user;
+  next();
+});
+
+// ROUTES
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 
-// Health check endpoint
+// HEALTH CHECK
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Server is running',
+    message: 'Server is running securely',
     timestamp: new Date().toISOString()
   });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
-});
+// 404
+app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
 
-// Error handler (must be last)
+// ERROR HANDLER
 app.use(errorHandler);
 
+// HTTPS SERVER START
 const PORT = process.env.PORT || 5000;
-
-// Server Configuration
-const startServer = () => {
-  const PORT = process.env.PORT || 5000;
-  
-  if (process.env.NODE_ENV === 'production') {
-    // Use HTTPS in production
-    const sslOptions = {
-      key: fs.readFileSync(path.join(__dirname, 'config/ssl/server.key')),
-      cert: fs.readFileSync(path.join(__dirname, 'config/ssl/server.cert'))
-    };
-    
-    const server = https.createServer(sslOptions, app);
-    
-    server.listen(PORT, () => {
-      console.log(`Server running in production mode with HTTPS on port ${PORT}`);
-      console.log(`API available at: https://localhost:${PORT}/api`);
-    });
-    
-    return server;
-  } else {
-    // Use HTTP in development
-    const server = http.createServer(app);
-    
-    server.listen(PORT, () => {
-      console.log(`Server running in development mode with HTTP on port ${PORT}`);
-      console.log(`API available at: http://localhost:${PORT}/api`);
-    });
-    
-    return server;
-  }
+const sslOptions = {
+  key: fs.readFileSync(path.join(__dirname, 'config/ssl/localhost-key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, 'config/ssl/localhost.pem'))
 };
 
-startServer();
+https.createServer(sslOptions, app).listen(PORT, () => {
+  console.log(`✅ HTTPS server running securely on port ${PORT}`);
+  console.log(`🔒 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 API available at: https://localhost:${PORT}/api`);
+});
 
-// Handle unhandled promise rejections
+// UNHANDLED REJECTIONS
 process.on('unhandledRejection', (err) => {
-  console.error(`Unhandled Rejection: ${err.message}`);
+  console.error(`Unhandled Rejection: ${err && err.message ? err.message : err}`);
   process.exit(1);
 });

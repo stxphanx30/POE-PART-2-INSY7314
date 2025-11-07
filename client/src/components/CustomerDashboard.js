@@ -20,11 +20,39 @@ const CustomerDashboard = () => {
       return;
     }
     setUser(currentUser);
-    
+
     if (activeTab === 'history') {
       loadPayments();
     }
   }, [navigate, activeTab]);
+
+  // -------------------------------
+  // SESSION TIMEOUT / AUTO-LOGOUT / FRONTEND
+  // -------------------------------
+  useEffect(() => {
+    if (!user) return; // only run if user is logged in
+
+    // Poll server every 5 seconds to check session validity
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/health', { credentials: 'include' });
+        if (!res.ok) {
+          alert('Session expired! Redirecting to login...');
+          authService.logout();
+          navigate('/login');
+        }
+      } catch (err) {
+        console.error('Error checking session:', err);
+        authService.logout();
+        navigate('/login');
+      }
+    }, 300000);
+
+  
+
+    return () => clearInterval(interval); // clear on unmount
+    // return () => { clearInterval(interval); clearTimeout(testTimeout); }; // if using testTimeout
+  }, [user, navigate]);
 
   const loadPayments = async () => {
     setLoading(true);
@@ -116,13 +144,8 @@ const CustomerDashboard = () => {
       </div>
 
       {/* Content */}
-      {activeTab === 'new-payment' && (
-        <PaymentForm onSuccess={handlePaymentSuccess} />
-      )}
-
-      {activeTab === 'history' && (
-        <PaymentHistory payments={payments} loading={loading} />
-      )}
+      {activeTab === 'new-payment' && <PaymentForm onSuccess={handlePaymentSuccess} />}
+      {activeTab === 'history' && <PaymentHistory payments={payments} loading={loading} />}
     </div>
   );
 };
