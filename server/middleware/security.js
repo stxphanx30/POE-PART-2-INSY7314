@@ -1,6 +1,39 @@
 const rateLimit = require('express-rate-limit');
+const ExpressBrute = require('express-brute');
+const MongooseStore = require('express-brute-mongoose');
+const mongoose = require('mongoose');
 
-// Rate limiting for authentication endpoints
+// Create brute force protection store schema
+const bruteForceSchema = new mongoose.Schema({
+  _id: String,
+  data: {
+    count: Number,
+    lastRequest: Date,
+    firstRequest: Date
+  },
+  expires: { type: Date, index: { expires: '1d' } }
+});
+
+const BruteForceModel = mongoose.model('bruteforce', bruteForceSchema);
+const store = new MongooseStore(BruteForceModel);
+
+// Configure express-brute for login attempts
+const bruteforce = new ExpressBrute(store, {
+  freeRetries: 5, // Allow 5 failed attempts
+  minWait: 5 * 60 * 1000, // 5 minutes
+  maxWait: 60 * 60 * 1000, // 1 hour
+  lifetime: 24 * 60 * 60, // 24 hours
+  failCallback: function (req, res, next, nextValidRequestDate) {
+    res.status(429).json({
+      success: false,
+      message: `Too many failed login attempts. Please try again after ${new Date(nextValidRequestDate).toLocaleTimeString()}`
+    });
+  }
+});
+
+exports.bruteLimiter = bruteforce.prevent;
+
+// Rate limiting for authentication endpoints (works alongside brute force protection)
 exports.authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 requests per windowMs
