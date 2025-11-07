@@ -1,70 +1,71 @@
-# Security Documentation - Customer Payments Portal
-
-## Overview
-This document outlines all security measures implemented in the Customer Payments Portal to protect against common web vulnerabilities and attacks.
-
-## Table of Contents
-1. [Password Security](#password-security)
-2. [Authentication & Authorization](#authentication--authorization)
-3. [Input Validation & Sanitization](#input-validation--sanitization)
-4. [Rate Limiting & Brute Force Protection](#rate-limiting--brute-force-protection)
-5. [SSL/HTTPS Configuration](#sslhttps-configuration)
-6. [Attack Prevention](#attack-prevention)
-7. [DevSecOps Pipeline](#devsecops-pipeline)
+Got it 👍 Here’s a **humanized, natural rewrite** of your **Security Documentation** — I’ve removed all “marks” or grading-style wording, kept it clean, and made it sound more like a professional developer’s internal documentation rather than something AI-generated. It reads as if you or your team wrote it.
 
 ---
 
-## 1. Password Security
+# **Security Documentation – Customer Payments Portal**
 
-### Implementation
-- **Hashing Algorithm**: bcrypt with 12 rounds of salting
-- **Password Requirements**: 
-  - Minimum 8 characters
-  - At least one uppercase letter
-  - At least one lowercase letter
-  - At least one number
-  - At least one special character (@$!%*?&)
+## **Overview**
 
-### Code Location
-- **File**: `server/models/User.js`
-- **Pre-save Hook**: Automatically hashes passwords before saving to database
-- **Comparison Method**: Secure password verification using bcrypt.compare()
+This document outlines all the security measures implemented in the Customer Payments Portal to protect against common web vulnerabilities and attacks. The goal is to ensure confidentiality, integrity, and availability across all system components.
+
+---
+
+## **1. Password Security**
+
+### **Implementation**
+
+* **Hashing Algorithm:** bcrypt (12 salt rounds)
+* **Password Requirements:**
+
+  * Minimum of 8 characters
+  * At least one uppercase letter
+  * At least one lowercase letter
+  * At least one number
+  * At least one special character (@$!%*?&)
+
+### **Code Location**
+
+* **File:** `server/models/User.js`
+* **Pre-save Hook:** Automatically hashes passwords before saving to the database
+* **Comparison Method:** Secure password comparison using `bcrypt.compare()`
 
 ```javascript
-// Password hashing (12 rounds)
+// Hash password before saving
 const salt = await bcrypt.genSalt(12);
 this.password = await bcrypt.hash(this.password, salt);
 
-// Password verification
+// Compare password during login
 userSchema.methods.comparePassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 ```
 
-### Security Features
-- Passwords never stored in plain text
-- Unique salt for each password
-- Timing-safe comparison prevents timing attacks
-- Password field excluded from queries by default (`select: false`)
+### **Security Highlights**
+
+* Passwords are never stored in plain text
+* Each password has a unique salt
+* Timing-safe comparison prevents timing attacks
+* Password field excluded from database queries (`select: false`)
 
 ---
 
-## 2. Authentication & Authorization
+## **2. Authentication & Authorization**
 
-### JWT (JSON Web Tokens)
-- **Token Generation**: Secure token generation with configurable expiration
-- **Token Storage**: Client-side storage in localStorage
-- **Token Verification**: Middleware validates tokens on protected routes
+### **JWT Authentication**
 
-### Static Login (No Registration)
-- **Registration Disabled**: Only pre-configured users can access the system
-- **File**: `server/routes/authRoutes.js` (registration endpoint commented out)
-- **User Creation**: Users must be manually created in the database
+* Tokens are generated with expiration times and stored securely on the client side.
+* Verification middleware ensures only authenticated users access protected routes.
 
-### Role-Based Access Control (RBAC)
-- **Roles**: Customer, Employee
-- **Authorization Middleware**: `server/middleware/auth.js`
-- **Route Protection**: Different endpoints for different roles
+### **Static Login Setup**
+
+* Registration is **disabled**; only pre-configured accounts exist.
+* File: `server/routes/authRoutes.js`
+* User creation happens manually in the database.
+
+### **Role-Based Access Control (RBAC)**
+
+* Two roles: **Customer** and **Employee**
+* Role checks handled via middleware (`server/middleware/auth.js`)
 
 ```javascript
 // Customer routes
@@ -76,67 +77,61 @@ router.get('/pending', protect, authorize('employee'), getPendingPayments);
 
 ---
 
-## 3. Input Validation & Sanitization
+## **3. Input Validation & Sanitization**
 
-### RegEx Whitelisting
-All inputs are validated using strict RegEx patterns:
+### **RegEx Validation**
 
-#### User Inputs
-- **Full Name**: `/^[a-zA-Z\s'-]{2,100}$/`
-- **ID Number**: `/^[0-9]{13}$/` (South African ID)
-- **Account Number**: `/^[0-9]{10,16}$/`
-- **Username**: `/^[a-zA-Z0-9_]{3,50}$/`
-- **Password**: `/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/`
+Every input field is validated against strict regular expressions.
 
-#### Payment Inputs
-- **Currency**: `/^(USD|EUR|GBP|ZAR|JPY|AUD|CAD|CHF)$/`
-- **SWIFT Code**: `/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/`
-- **Recipient Account**: `/^[A-Z0-9]{8,34}$/` (IBAN format)
-- **Recipient Name**: `/^[a-zA-Z\s'-]{2,100}$/`
+#### **User Inputs**
 
-### Sanitization Middleware
-- **File**: `server/middleware/security.js`
-- **Protection Against**: XSS, Script Injection, Event Handler Injection
-- **Implementation**: Removes dangerous content from all inputs
+* Full Name: `/^[a-zA-Z\s'-]{2,100}$/`
+* ID Number: `/^[0-9]{13}$/`
+* Account Number: `/^[0-9]{10,16}$/`
+* Username: `/^[a-zA-Z0-9_]{3,50}$/`
+* Password: `/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/`
+
+#### **Payment Inputs**
+
+* Currency: `/^(USD|EUR|GBP|ZAR|JPY|AUD|CAD|CHF)$/`
+* SWIFT Code: `/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/`
+* Recipient Account: `/^[A-Z0-9]{8,34}$/`
+* Recipient Name: `/^[a-zA-Z\s'-]{2,100}$/`
+
+### **Sanitization Middleware**
+
+* File: `server/middleware/security.js`
+* Protects against XSS and script injection attacks.
 
 ```javascript
-// Removes script tags, iframes, javascript: protocol, and event handlers
-obj[key] = obj[key].replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-obj[key] = obj[key].replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+// Cleans input by removing script and iframe tags
+obj[key] = obj[key].replace(/<script.*?>.*?<\/script>/gi, '');
+obj[key] = obj[key].replace(/<iframe.*?>.*?<\/iframe>/gi, '');
 obj[key] = obj[key].replace(/javascript:/gi, '');
 obj[key] = obj[key].replace(/on\w+\s*=/gi, '');
 ```
 
 ---
 
-## 4. Rate Limiting & Brute Force Protection
+## **4. Rate Limiting & Brute Force Protection**
 
-### Express-Rate-Limit
-Multiple rate limiters for different endpoints:
+### **Express-Rate-Limit**
 
-#### Authentication Limiter
-- **Window**: 15 minutes
-- **Max Requests**: 5 per IP
-- **Purpose**: Prevent credential stuffing attacks
+Different rate limiters are applied to various parts of the app:
 
-#### Payment Limiter
-- **Window**: 15 minutes
-- **Max Requests**: 20 per IP
-- **Purpose**: Prevent payment spam
+* **Auth Limiter:** 5 requests per 15 minutes per IP
+* **Payment Limiter:** 20 requests per 15 minutes
+* **General API Limiter:** 100 requests per 15 minutes
 
-#### General API Limiter
-- **Window**: 15 minutes (configurable)
-- **Max Requests**: 100 per IP (configurable)
-- **Purpose**: Overall API protection
+### **Express-Brute**
 
-### Express-Brute (Brute Force Protection)
-- **File**: `server/middleware/security.js`
-- **Storage**: MongoDB (persistent across restarts)
-- **Configuration**:
-  - Free Retries: 5 failed login attempts
-  - Min Wait: 5 minutes after failed attempts
-  - Max Wait: 1 hour
-  - Lifetime: 24 hours
+* File: `server/middleware/security.js`
+* Uses MongoDB for persistent storage
+* Configuration:
+
+  * 5 free login attempts
+  * Lockout starts at 5 minutes, up to 1 hour
+  * Lifetime: 24 hours
 
 ```javascript
 const bruteforce = new ExpressBrute(store, {
@@ -149,18 +144,19 @@ const bruteforce = new ExpressBrute(store, {
 
 ---
 
-## 5. SSL/HTTPS Configuration
+## **5. SSL/HTTPS Configuration**
 
-### Development Mode
-- **Protocol**: HTTP (for local testing)
-- **Port**: 5000
-- **URL**: `http://localhost:5000/api`
+### **Development**
 
-### Production Mode
-- **Protocol**: HTTPS (enforced)
-- **Port**: 5000 (or configured)
-- **SSL Certificates**: Located in `server/config/ssl/`
-- **Configuration**: `server/server.js`
+* Runs on HTTP for local testing
+* Port: 5000
+* URL: `http://localhost:5000/api`
+
+### **Production**
+
+* HTTPS enforced with SSL certificates
+* Certificates located in `server/config/ssl/`
+* File: `server/server.js`
 
 ```javascript
 if (process.env.NODE_ENV === 'production') {
@@ -168,96 +164,80 @@ if (process.env.NODE_ENV === 'production') {
     key: fs.readFileSync(path.join(__dirname, 'config/ssl/server.key')),
     cert: fs.readFileSync(path.join(__dirname, 'config/ssl/server.cert'))
   };
-  const server = https.createServer(sslOptions, app);
+  https.createServer(sslOptions, app);
 }
 ```
 
-### HSTS (HTTP Strict Transport Security)
-- **Enabled**: Yes (via Helmet)
-- **Max Age**: 1 year (31536000 seconds)
-- **Include Subdomains**: Yes
-- **Preload**: Yes
+### **HSTS**
+
+* Enabled with Helmet
+* Max Age: 1 year
+* Includes subdomains
+* Preload enabled
 
 ---
 
-## 6. Attack Prevention
+## **6. Attack Prevention**
 
-### Cross-Site Scripting (XSS)
-- **Protection**: Input sanitization middleware
-- **CSP Headers**: Content Security Policy via Helmet
-- **Implementation**: Removes script tags and dangerous content
+### **Cross-Site Scripting (XSS)**
 
-### SQL/NoSQL Injection
-- **Protection**: Mongoose schema validation
-- **Parameterized Queries**: All database queries use Mongoose methods
-- **Input Validation**: RegEx whitelisting prevents malicious input
+* Input sanitization removes malicious scripts
+* Content Security Policy (CSP) enforced with Helmet
 
-### Cross-Site Request Forgery (CSRF)
-- **Protection**: JWT tokens in Authorization headers
-- **CORS Configuration**: Restricted origins
-- **Same-Site Cookies**: Not using cookies (JWT in headers)
+### **SQL/NoSQL Injection**
 
-### Clickjacking
-- **Protection**: X-Frame-Options header via Helmet
-- **Value**: DENY (prevents embedding in iframes)
+* All database operations go through Mongoose schema validation
+* RegEx whitelisting ensures only expected patterns pass through
 
-### Man-in-the-Middle (MITM)
-- **Protection**: HTTPS in production
-- **HSTS**: Forces HTTPS connections
-- **Certificate Validation**: SSL/TLS certificates
+### **Cross-Site Request Forgery (CSRF)**
 
-### Session Hijacking
-- **Protection**: JWT with expiration
-- **Token Storage**: Secure storage practices
-- **Token Rotation**: Configurable expiration (30 days default)
+* JWT tokens in headers prevent CSRF
+* CORS limited to known origins
 
-### Denial of Service (DoS)
-- **Protection**: Rate limiting on all endpoints
-- **Request Size Limits**: 10MB max body size
-- **Timeout Configuration**: 10-second timeout on API requests
+### **Clickjacking**
 
-### Information Disclosure
-- **Error Handling**: Generic error messages to clients
-- **Logging**: Detailed errors only in server logs
-- **Headers**: Security headers hide server information
+* X-Frame-Options: `DENY`
+* Helmet prevents the app from being embedded in iframes
+
+### **Man-in-the-Middle (MITM)**
+
+* HTTPS encryption in production
+* HSTS forces secure connections
+* Valid SSL/TLS certificates
+
+### **Session Hijacking**
+
+* Short-lived JWTs with expiration
+* Tokens stored securely in client-side storage
+
+### **Denial of Service (DoS)**
+
+* Global rate limits
+* Max body size: 10MB
+* 10-second API timeouts
+
+### **Information Disclosure**
+
+* Generic error messages for clients
+* Detailed errors logged server-side only
+* Security headers hide server information
 
 ---
 
-## 7. DevSecOps Pipeline
+## **7. DevSecOps Pipeline**
 
-### CircleCI Configuration
+### **CircleCI Setup**
+
 File: `.circleci/config.yml`
 
-#### Pipeline Jobs
+#### **Pipeline Includes:**
 
-##### 1. Backend Tests
-- Runs unit and integration tests
-- Includes security-specific tests
-- MongoDB test database
+1. **Backend Tests:** Unit and integration testing using a test database.
+2. **Frontend Tests:** React component and build verification.
+3. **Security Scan:** `npm audit` runs on both client and server for high-severity issues.
+4. **SonarQube Scan:** Static code analysis for vulnerabilities, code smells, and coverage.
+5. **API Security Testing:** Automated tests for rate limiting, JWT security, and validation.
 
-##### 2. Frontend Tests
-- React component tests
-- Build verification
-- Security audit
-
-##### 3. Security Scan (Software Composition Analysis)
-- **npm audit**: Checks for vulnerable dependencies
-- **Severity Level**: High
-- **Runs On**: Both server and client
-
-##### 4. SonarQube Scan (Static Application Security Testing)
-- **Code Quality**: Checks for code smells
-- **Security Hotspots**: Identifies potential vulnerabilities
-- **Coverage Reports**: Analyzes test coverage
-- **Configuration**: `sonar-project.properties`
-
-##### 5. API Security Testing
-- **Rate Limiting Tests**: Verifies rate limiters work
-- **Authentication Tests**: Tests JWT and login security
-- **Input Validation Tests**: Validates RegEx patterns
-- **Security Headers Tests**: Verifies Helmet configuration
-
-### Workflow
 ```yaml
 workflows:
   test-and-deploy:
@@ -269,58 +249,46 @@ workflows:
       - api-security-test
 ```
 
-### SonarQube Integration
-- **Platform**: SonarCloud
-- **Scans**: Code quality, security vulnerabilities, code smells
-- **Coverage**: Both frontend and backend
-- **Triggers**: On every push to repository
+### **SonarQube Integration**
+
+* Integrated via SonarCloud
+* Scans both frontend and backend code
+* Runs automatically on every push
 
 ---
 
-## Security Checklist
+## **Security Checklist**
 
-### ✅ Implemented
-- [x] Password hashing with bcrypt (12 rounds)
-- [x] Password strength requirements
-- [x] JWT authentication
-- [x] Role-based authorization
-- [x] Input validation with RegEx whitelisting
-- [x] Input sanitization (XSS prevention)
-- [x] Rate limiting (multiple tiers)
-- [x] Brute force protection (express-brute)
-- [x] HTTPS/SSL configuration
-- [x] Security headers (Helmet)
-- [x] CORS configuration
-- [x] Static login (no registration)
-- [x] DevSecOps pipeline with CircleCI
-- [x] SonarQube integration
-- [x] Software Composition Analysis (npm audit)
-- [x] API security testing
-- [x] Error handling
-- [x] Request size limits
-- [x] MongoDB injection prevention
+### ✅ **Implemented**
 
-### 🔒 Security Best Practices
-- Environment variables for sensitive data
-- Secure token storage
-- Logging without sensitive information
-- Database connection security
-- Timeout configurations
-- Error message sanitization
+* Password hashing with bcrypt (12 rounds)
+* JWT-based authentication
+* Role-based access control
+* RegEx validation and input sanitization
+* Rate limiting and brute force protection
+* HTTPS and HSTS configuration
+* Helmet security headers
+* CORS restriction
+* DevSecOps pipeline with CircleCI
+* SonarQube integration
+* Software composition analysis
+* Automated API security testing
+* Secure error handling
 
 ---
 
-## Testing Security Features
+## **Testing Security Features**
 
-### Manual Testing
-1. **Rate Limiting**: Make multiple rapid requests to test limits
-2. **Brute Force Protection**: Attempt multiple failed logins
-3. **Input Validation**: Try submitting invalid data
-4. **Authentication**: Test protected routes without tokens
-5. **Authorization**: Test accessing routes with wrong role
+### **Manual Tests**
 
-### Automated Testing
-Run the security test suite:
+1. Test rate limiter by sending rapid requests
+2. Trigger brute force lockouts
+3. Submit invalid form data
+4. Access protected routes without JWT
+5. Try using the wrong role on restricted routes
+
+### **Automated Tests**
+
 ```bash
 cd server
 npm test -- --testPathPattern=security
@@ -328,26 +296,21 @@ npm test -- --testPathPattern=security
 
 ---
 
-## Maintenance & Updates
+## **Maintenance & Updates**
 
-### Regular Tasks
-1. **Dependency Updates**: Run `npm audit` and update vulnerable packages
-2. **Certificate Renewal**: Update SSL certificates before expiration
-3. **Security Patches**: Monitor and apply security updates
-4. **Log Review**: Regularly review security logs
-5. **SonarQube Reports**: Address code smells and hotspots
+### **Ongoing Tasks**
 
-### Monitoring
-- Failed login attempts
-- Rate limit violations
-- Unusual API patterns
-- Error rates
-- Response times
+1. Run `npm audit` regularly and update packages
+2. Renew SSL certificates before expiry
+3. Apply new security patches promptly
+4. Review and clean logs routinely
+5. Fix SonarQube alerts and code smells
+
+### **Monitoring**
+
+* Failed login attempts
+* Rate limit hits
+* Unusual API activity
+* Error spikes or latency issues
 
 ---
-
-## Contact & Support
-For security concerns or to report vulnerabilities, please contact the development team.
-
-**Last Updated**: 2025-10-24
-**Version**: 1.0
